@@ -27,17 +27,17 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:var(--tone-a);--fg:var(--tone-b);color-scheme:dark}}
 :root[data-theme="dark"]{--bg:var(--tone-a);--fg:var(--tone-b);color-scheme:dark}
 
-@supports (height:100dvh){html,body{height:100dvh}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-html{-webkit-text-size-adjust:100%;height:100%;overflow:hidden;overscroll-behavior:none}
+html{-webkit-text-size-adjust:100%;height:100%}
 body{background:var(--bg);color:var(--fg);font:500 15px/1.45 var(--font);
   height:100%;padding-block:0;overscroll-behavior:none;
   padding-left:max(16px,env(safe-area-inset-left,0px));
   padding-right:max(16px,env(safe-area-inset-right,0px));
-  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overflow:hidden}
+  -webkit-touch-callout:none}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:30}
 input,textarea,select,button{font:inherit;color:inherit}
-input,textarea{-webkit-user-select:text;user-select:text}
+button,.tab,.row,.dchip{-webkit-user-select:none;user-select:none}
+input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 button{cursor:pointer;background:none;border:0;padding:0;text-align:inherit}
 button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
 .shell{height:100%;max-width:560px;margin:0 auto;min-width:0;display:flex;flex-direction:column}
@@ -488,7 +488,7 @@ function vSettings(){
      '<button class="btn wide" data-act="bk-restore">Khôi phục dữ liệu</button></section>';
   h+='<section class="card sec"><div class="cardhead"><h2>Thêm vào màn hình chính</h2></div><ol class="steps"><li>Mở app bằng Safari trên iPhone.</li><li>Bấm nút Chia sẻ, chọn “Thêm vào MH chính”.</li><li>Mở từ biểu tượng mới: app chạy toàn màn hình, không còn thanh Safari.</li></ol><div class="hint">Mỗi cách mở (Safari hoặc biểu tượng) lưu dữ liệu riêng. Hãy sao lưu rồi khôi phục khi chuyển.</div></section>';
   h+='<section class="card sec"><div class="cardhead"><h2>Dữ liệu</h2></div><div class="btnrow"><button class="btn" data-act="wipe">Xoá toàn bộ dữ liệu</button></div></section>';
-  h+='<div class="hint" style="text-align:center">Sổ Chi Tiêu · bản 18.10.2026-e</div>';
+  h+='<div class="hint" style="text-align:center">Sổ Chi Tiêu · bản 19.10.2026-g</div>';
   return h;
 }
 
