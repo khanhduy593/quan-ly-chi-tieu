@@ -139,6 +139,7 @@ svg.chart{display:block;width:100%;height:auto}
 .catrow .bar i{background:var(--fg)}
 
 .day{font-size:12px;font-weight:700;color:var(--mid);letter-spacing:.04em;padding:12px 0 4px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.day .dl{border:0;padding:4px 0;border-radius:0;color:var(--mid);letter-spacing:.04em;text-align:left;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:4px;background:none}
 .day button{font-size:12px;font-weight:700;color:var(--fg);border:1.5px solid var(--line);border-radius:99px;padding:4px 12px}
 .row{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;padding:11px 0;border-bottom:1px solid var(--line);min-width:0}
 .row .l{min-width:0}
@@ -241,11 +242,12 @@ ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;f
 .authtabs button.on{background:var(--fg);color:var(--bg)}
 .authbox form{display:flex;flex-direction:column;gap:8px}
 .authbox label{font-size:13px;font-weight:600;margin-top:4px}
-.author{text-align:center;font-size:13px;opacity:.7}
-.gbtn{display:flex;justify-content:center;min-height:44px}
 .aumsg{min-height:20px;font-size:14px;text-align:center}
 .authtabs button,.authbox .txtbtn{text-align:center;justify-content:center}
 .authbox .txtbtn{align-self:center}
+.about{padding:4px 0 8px}.about .authlogo{margin:8px auto}.about h2{text-align:center;font-size:22px;margin:6px 0}
+.about .lead{text-align:center;color:var(--mid);margin:0 0 8px}.about h3{font-size:15px;margin:18px 0 6px}
+.about p{margin:0;line-height:1.5}.about ul{margin:0;padding-left:20px;line-height:1.5}.about li{margin:4px 0}
 </style>
 </head><body>
 
@@ -277,6 +279,7 @@ ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;f
 'use strict';
 /* ---------- tiện ích ---------- */
 var KEY='so-chi-tieu-v1';
+var VER='23.10.2026-q';
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var pad=function(n){return String(n).padStart(2,'0')};
@@ -458,7 +461,7 @@ function vMonth(){
   h+='</section>';
   h+='<section class="sec"><h2>'+(ui.day?'Chi tiêu trong ngày':'Chi tiêu')+'</h2>';
   if(!outs.length)h+='<div class="hint">'+(ui.day?'Ngày này':'Tháng này')+' chưa có khoản chi. Bấm nút + để thêm.</div>';
-  else{var cur='';outs.forEach(function(t){if(t.date!==cur){cur=t.date;h+='<div class="day"><span>'+dLabel(t.date)+'</span><button data-act="day-move" data-d="'+t.date+'">Dời ngày</button></div>'}h+=txRow(t,'edit-tx')})}
+  else{var cur='';outs.forEach(function(t){if(t.date!==cur){cur=t.date;h+='<div class="day"><button class="dl" data-act="day-open" data-d="'+t.date+'" aria-label="Xem riêng '+dLabel(t.date)+'">'+dLabel(t.date)+(ui.day===t.date?' · Xem cả tháng':'')+'</button><button data-act="day-move" data-d="'+t.date+'">Dời ngày</button></div>'}h+=txRow(t,'edit-tx')})}
   h+='</section>';
   return h;
 }
@@ -530,7 +533,8 @@ function vSettings(){
      '<button class="btn wide" data-act="bk-restore">Khôi phục dữ liệu</button></section>';
   h+='<section class="card sec"><div class="cardhead"><h2>Thêm vào màn hình chính</h2></div><ol class="steps"><li>Mở app bằng Safari trên iPhone.</li><li>Bấm nút Chia sẻ, chọn “Thêm vào MH chính”.</li><li>Mở từ biểu tượng mới: app chạy toàn màn hình, không còn thanh Safari.</li></ol><div class="hint">Mỗi cách mở (Safari hoặc biểu tượng) lưu dữ liệu riêng. Hãy sao lưu rồi khôi phục khi chuyển.</div></section>';
   h+='<section class="card sec"><div class="cardhead"><h2>Dữ liệu</h2></div><div class="btnrow"><button class="btn" data-act="wipe">Xoá toàn bộ dữ liệu</button></div></section>';
-  h+='<div class="hint" style="text-align:center">Sổ Chi Tiêu · bản 22.10.2026-p</div>';
+  h+='<section class="card sec"><div class="cardhead"><h2>Giới thiệu</h2></div><div class="hint">Tìm hiểu về app và người tạo ra nó.</div><button class="btn wide" data-act="about">Giới thiệu</button></section>';
+  h+='<div class="hint" style="text-align:center">Sổ Chi Tiêu · bản '+VER+' · KhanhDuy</div>';
   return h;
 }
 
@@ -550,13 +554,29 @@ function render(keepScroll){
 
 /* ---------- thông báo, hộp thoại ---------- */
 var toastT;
+function aboutHtml(){
+  return '<div class="hd"><button class="txtbtn" data-act="sh-close">Đóng</button><h3>Giới thiệu</h3><span></span></div>'+
+  '<div class="about"><div class="authlogo">đ</div><h2>Sổ Chi Tiêu</h2><p class="lead">Cuốn sổ chi tiêu gọn nhẹ trong túi bạn: mở lên là ghi được ngay, nhìn một cái biết tháng này đã tiêu bao nhiêu và còn dư bao nhiêu.</p>'+
+  '<h3>App giúp bạn</h3><ul>'+
+  '<li>Ghi nhanh khoản thu và khoản chi, có gợi ý số tiền khi nhập.</li>'+
+  '<li>Đặt giới hạn cho ăn uống, đồ dùng cá nhân và sự cố phát sinh. App nhắc khi dùng đến 80% và báo khi vượt.</li>'+
+  '<li>Xem biểu đồ thu, chi và tiền dư từng tháng, cùng tổng kết cả năm.</li>'+
+  '<li>Lên kế hoạch khoản chi tương lai và xem số dư dự kiến.</li>'+
+  '<li>Đặt mục tiêu tiết kiệm và theo dõi tiến độ.</li>'+
+  '<li>Tuỳ chỉnh các mục thu chi, đổi tên mục giới hạn.</li>'+
+  '<li>Sao lưu, khôi phục và đồng bộ bằng tài khoản để không mất dữ liệu khi đổi máy.</li></ul>'+
+  '<h3>Dữ liệu của bạn</h3><p>Dữ liệu được lưu ngay trên máy của bạn. Khi đăng nhập, bản sao được lưu riêng cho tài khoản của bạn trên đám mây để lấy lại khi cần. Không quảng cáo, không chia sẻ cho ai.</p>'+
+  '<h3>Người tạo</h3><p>Sổ Chi Tiêu do <b>KhanhDuy</b> tạo ra, với mong muốn việc ghi chép chi tiêu mỗi ngày trở nên nhẹ nhàng, dễ làm và dễ duy trì.</p>'+
+  '<div class="hint" style="text-align:center;margin-top:16px">Sổ Chi Tiêu · bản '+VER+' · KhanhDuy</div></div>';
+}
+function openAbout(){openLayer(aboutHtml(),'tall');var l=$('#layer');l.style.zIndex='85'}
 function toast(msg,strong){
   var t=$('#toast');t.innerHTML=(strong?'<b>Cảnh báo</b>':'')+msg;t.hidden=false;
   clearTimeout(toastT);toastT=setTimeout(function(){t.hidden=true},strong?7000:3200);
   if(strong){try{navigator.vibrate&&navigator.vibrate([120,60,120])}catch(e){}}
 }
 function openLayer(html,cls){var l=$('#layer');l.innerHTML='<div class="sheet'+(cls?' '+cls:'')+'" role="dialog" aria-modal="true">'+html+'</div>';l.hidden=false}
-function closeLayer(){$('#layer').hidden=true;$('#layer').innerHTML=''}
+function closeLayer(){$('#layer').hidden=true;$('#layer').innerHTML='';$('#layer').style.zIndex=''}
 function ask(msg,ok){
   return new Promise(function(res){
     var d=$('#dlg');
@@ -760,6 +780,7 @@ function bkRestore(){
 function act(a,b){
   var d=b.dataset;
   switch(a){
+    case 'about':openAbout();break;
     case 'cloud-open':authOpen(true);break;
     case 'cloud-sync':syncNow();break;
     case 'cloud-out':cloudOut();break;
@@ -768,6 +789,7 @@ function act(a,b){
     case 'add-future':openTx('future',null,null,true);break;
     case 'add-in':openTx('tx',null,'in',true);break;
     case 'add-out':openTx('tx',null,'out',true);break;
+    case 'day-open':ui.day=(ui.day===d.d)?null:d.d;render(true);var mn=$('#main');if(mn)mn.scrollTop=0;break;
     case 'day-pick':ui.day=d.d||null;render(true);break;
     case 'm-prev':ui.day=null;ui.month=shiftMonth(ui.month,-1);render(true);break;
     case 'm-next':ui.day=null;ui.month=shiftMonth(ui.month,1);render(true);break;
@@ -866,7 +888,6 @@ if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)&&document.q
 /* ---------- tài khoản & đồng bộ (Firebase REST) ---------- */
 var FB={key:'AIzaSyAZt4Hi18uZ8HqqNAU48B5JezkTbb4G98c',project:'quanly-chitieu'};
 var AK='so-chi-tieu-auth';
-var GCLIENT='704829445139-9v5hvj7oarjv3u1f5ng89f0m1gbuu8bu.apps.googleusercontent.com';/* Web client ID của Google (dán vào đây) */
 var DOCU='https://firestore.googleapis.com/v1/projects/'+FB.project+'/databases/(default)/documents/users/';
 var A={};try{A=JSON.parse(localStorage.getItem(AK)||'{}')||{}}catch(e){A={}}
 var idTok='',idExp=0,sync={state:'',last:0,busy:false,dirty:false,pending:false},pushT=0;
@@ -886,7 +907,6 @@ function token(){
 function authMsg(e){
   var m=String(e&&e.message||e);
   if(/EMAIL_EXISTS/.test(m))return 'Email này đã có tài khoản. Hãy chuyển sang Đăng nhập.';
-  if(/INVALID_IDP_RESPONSE|INVALID_CREDENTIAL/.test(m))return 'Google không xác nhận được. Kiểm tra mã Client ID và địa chỉ web đã thêm trong Google Cloud.';
   if(/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND|USER_NOT_FOUND/.test(m))return 'Sai email hoặc mật khẩu.';
   if(/WEAK_PASSWORD/.test(m))return 'Mật khẩu cần ít nhất 6 ký tự.';
   if(/INVALID_EMAIL|MISSING_EMAIL/.test(m))return 'Email chưa đúng.';
@@ -996,11 +1016,11 @@ function authOpen(closable){
       '<label for="au-p">Mật khẩu'+(up?' (ít nhất 6 ký tự)':'')+'</label><input id="au-p" class="inp" type="password" autocomplete="'+(up?'new-password':'current-password')+'">'+
       (up?'<label for="au-p2">Nhập lại mật khẩu</label><input id="au-p2" class="inp" type="password" autocomplete="new-password">':'')+
       '<div id="au-msg" class="aumsg" role="alert"></div><button class="btn pri wide" type="submit" id="au-go">'+(up?'Tạo tài khoản':'Đăng nhập')+'</button></form>'+
-      (GCLIENT?'<div class="author">hoặc</div><div id="gbtn" class="gbtn"></div>':'')+
+
       (up?'':'<button type="button" class="txtbtn" data-au="forgot">Quên mật khẩu?</button>')+
+      '<button type="button" class="txtbtn" data-au="about">Giới thiệu</button>'+
       '<button type="button" class="txtbtn" data-au="skip">'+(closable?'Đóng':'Dùng không cần tài khoản')+'</button></div>';
     el.hidden=false;
-    if(GCLIENT)mountG();
   }
   function msg(t,ok){var m=$('#au-msg');if(m){m.textContent=t;m.style.opacity=ok?'1':'.9';m.style.fontWeight=ok?'400':'600'}}
   function close(){el.hidden=true;el.innerHTML=''}
@@ -1008,28 +1028,11 @@ function authOpen(closable){
     setSession(j);A.email=j.email||em||'';A.skip=false;saveAuth();
     return firstSync().then(function(){close();render(true);toast('Đã đăng nhập')});
   }
-  function gcb(resp){
-    if(!resp||!resp.credential){msg('Không lấy được tài khoản Google. Hãy thử lại.');return}
-    msg('Đang đăng nhập…',true);
-    authCall('signInWithIdp',{postBody:'id_token='+resp.credential+'&providerId=google.com',requestUri:/^https?:/.test(location.href)?location.origin:'http://localhost',returnIdpCredential:true,returnSecureToken:true}).then(function(j){return done(j,'')}).catch(function(e){msg(authMsg(e))});
-  }
-  function mountG(){
-    var go=function(){
-      var b=$('#gbtn');if(!b||!window.google||!google.accounts)return;
-      try{
-        google.accounts.id.initialize({client_id:GCLIENT,callback:gcb,use_fedcm_for_prompt:true});
-        google.accounts.id.renderButton(b,{theme:'outline',size:'large',text:'continue_with',shape:'pill',locale:'vi',width:Math.min(340,Math.max(200,b.clientWidth||300))});
-      }catch(e){msg('Không tải được nút Google.')}
-    };
-    if(window.google&&google.accounts){go();return}
-    if(document.getElementById('gsi'))return;
-    var sc=document.createElement('script');sc.id='gsi';sc.src='https://accounts.google.com/gsi/client';sc.async=true;sc.onload=go;sc.onerror=function(){var g=$('#gbtn');if(g)g.textContent='Không tải được Google (kiểm tra mạng).';sc.remove()};
-    document.head.appendChild(sc);
-  }
   function grab(){var e=$('#au-e'),p=$('#au-p');if(e)keep.e=e.value.trim()}
   el.onclick=function(ev){
     var b=ev.target.closest('[data-au]');if(!b)return;var a=b.dataset.au;
     if(a==='mode-in'||a==='mode-up'){grab();mode=a==='mode-up'?'up':'in';paint()}
+    else if(a==='about'){openAbout()}
     else if(a==='skip'){if(!closable){A.skip=true;saveAuth()}close()}
     else if(a==='forgot'){
       grab();if(!/^\S+@\S+\.\S+$/.test(keep.e)){msg('Hãy nhập email của bạn ở ô trên rồi bấm lại.');return}
