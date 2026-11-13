@@ -285,7 +285,7 @@ ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;f
 'use strict';
 /* ---------- tiện ích ---------- */
 var KEY='so-chi-tieu-v1';
-var VER='13.11.2026-u';
+var VER='13.11.2026-v';
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var pad=function(n){return String(n).padStart(2,'0')};
@@ -1078,9 +1078,12 @@ function sheetData(){
   var f=function(n){return Math.round(+n||0)},T=todayS(),cm=mkey(T);
   var tx=S.tx.slice().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0});
   var lim=S.lnames;
-  var rows=[['Ngày','Loại','Mục','Số tiền','Ghi chú']];
-  tx.forEach(function(t){rows.push([t.date,t.type==='in'?'Thu':'Chi',t.cat,f(t.amt),t.note||''])});
-  var gd={name:'Giao dịch',rows:rows,head:true,dates:[0],money:[3]};
+  var WD=['CN','T2','T3','T4','T5','T6','T7'],wd=function(d){var p=d.split('-');return WD[new Date(+p[0],+p[1]-1,+p[2]).getDay()]},ml=function(d){return 'Tháng '+d.slice(5,7)+'/'+d.slice(0,4)};
+  var asc=tx.slice().reverse(),run=S.opening,bal={};
+  asc.forEach(function(t){run+=t.type==='in'?t.amt:-t.amt;bal[t.id]=run});
+  var rows=[['Ngày','Thứ','Tháng','Loại','Mục','Thu','Chi','Số dư sau khoản này','Ghi chú']];
+  tx.forEach(function(t){rows.push([t.date,wd(t.date),ml(t.date),t.type==='in'?'Thu':'Chi',t.cat,t.type==='in'?f(t.amt):'',t.type==='out'?f(t.amt):'',f(bal[t.id]),t.note||''])});
+  var gd={name:'Giao dịch',rows:rows,head:true,dates:[0],money:[5,6,7]};
   var by={},yr={};
   S.tx.forEach(function(t){
     var m=t.date.slice(0,7),y=t.date.slice(0,4);
@@ -1088,15 +1091,16 @@ function sheetData(){
     var q=yr[y]=yr[y]||{i:0,o:0};
     if(t.type==='in'){o.i+=t.amt;q.i+=t.amt}else{o.o+=t.amt;q.o+=t.amt;Object.keys(lim).forEach(function(k){if(t.cat===lim[k])o.l[k]+=t.amt})}
   });
-  var mr=[['Tháng','Thu nhập','Chi tiêu','Tiền dư',lim.food,lim.personal,lim.incident]];
-  Object.keys(by).sort().reverse().forEach(function(m){var o=by[m];mr.push(['Tháng '+m.slice(5)+'/'+m.slice(0,4),f(o.i),f(o.o),f(o.i-o.o),f(o.l.food),f(o.l.personal),f(o.l.incident)])});
+  var cnt={};S.tx.forEach(function(t){var m=t.date.slice(0,7);cnt[m]=(cnt[m]||0)+1});
+  var mr=[['Tháng','Thu nhập','Chi tiêu','Tiền dư',lim.food,lim.personal,lim.incident,'Số khoản','Tiền dư / Thu']];
+  Object.keys(by).sort().reverse().forEach(function(m){var o=by[m];mr.push(['Tháng '+m.slice(5)+'/'+m.slice(0,4),f(o.i),f(o.o),f(o.i-o.o),f(o.l.food),f(o.l.personal),f(o.l.incident),cnt[m]||0,o.i>0?Math.round((o.i-o.o)/o.i*100)+'%':''])});
   var md={name:'Tổng kết tháng',rows:mr,head:true,money:[1,2,3,4,5,6]};
-  var yr2=[['Năm','Thu nhập','Chi tiêu','Tiền dư']];
-  Object.keys(yr).sort().reverse().forEach(function(y){var q=yr[y];yr2.push([y,f(q.i),f(q.o),f(q.i-q.o)])});
-  var yd={name:'Tổng kết năm',rows:yr2,head:true,money:[1,2,3]};
-  var fu=[['Ngày','Loại','Mục','Số tiền','Ghi chú']];
-  S.future.slice().sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0}).forEach(function(t){fu.push([t.date,t.type==='in'?'Thu':'Chi',t.cat,f(t.amt),t.note||''])});
-  var fd={name:'Tương lai',rows:fu,head:true,dates:[0],money:[3]};
+  var yr2=[['Năm','Thu nhập','Chi tiêu','Tiền dư','Chi trung bình / tháng','Tiền dư / Thu']];
+  Object.keys(yr).sort().reverse().forEach(function(y){var q=yr[y];var nm=Object.keys(by).filter(function(m){return m.slice(0,4)===y}).length||1;yr2.push([y,f(q.i),f(q.o),f(q.i-q.o),f(q.o/nm),q.i>0?Math.round((q.i-q.o)/q.i*100)+'%':''])});
+  var yd={name:'Tổng kết năm',rows:yr2,head:true,money:[1,2,3,4]};
+  var fu=[['Ngày','Thứ','Loại','Mục','Thu','Chi','Số dư dự kiến sau khoản này','Còn lại (ngày)','Ghi chú']],frun=balance(),t0=new Date(T.slice(0,4),+T.slice(5,7)-1,+T.slice(8,10));
+  S.future.slice().sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0}).forEach(function(t){frun+=t.type==='in'?t.amt:-t.amt;var p=t.date.split('-'),dd=Math.round((new Date(+p[0],+p[1]-1,+p[2])-t0)/864e5);fu.push([t.date,wd(t.date),t.type==='in'?'Thu':'Chi',t.cat,t.type==='in'?f(t.amt):'',t.type==='out'?f(t.amt):'',f(frun),dd,t.note||''])});
+  var fd={name:'Tương lai',rows:fu,head:true,dates:[0],money:[4,5,6]};
   var gl=[['Mục tiêu','Cần đạt','Đã có','Còn thiếu','Tiến độ','Hạn','Ghi chú']];
   S.goals.forEach(function(g){gl.push([g.name,f(g.target),f(g.saved),f(Math.max(0,g.target-g.saved)),(g.target>0?Math.min(100,Math.round(g.saved/g.target*100)):0)+'%',g.deadline||'',g.note||''])});
   var ld={name:'Mục tiêu',rows:gl,head:true,money:[1,2,3]};
@@ -1104,7 +1108,17 @@ function sheetData(){
   var ov=[['Cập nhật lúc',new Date().toLocaleString('vi-VN')],['Số dư ban đầu',f(S.opening)],['Tổng thu từ trước đến nay',f(s1.i)],['Tổng chi từ trước đến nay',f(s1.o)],['SỐ DƯ HIỆN TẠI',f(balance())],['Số dư dự kiến sau các khoản tương lai',f(balance()+fs.r)],['',''],['Tháng '+cm.slice(5)+'/'+cm.slice(0,4),''],['Thu nhập',f(mo.i)],['Chi tiêu',f(mo.o)],['Tiền dư',f(mo.r)],['',''],['Giới hạn chi tiêu tháng này','Đã chi / Giới hạn']];
   ['food','personal','incident'].forEach(function(k){var sp=0;S.tx.forEach(function(t){if(t.type==='out'&&t.cat===lim[k]&&t.date.slice(0,7)===cm)sp+=t.amt});var L=S.limits[k]||0;ov.push([lim[k],f(sp)+' / '+(L?f(L).toLocaleString('vi-VN'):'chưa đặt')+(L?' ('+Math.round(sp/L*100)+'%)':'')])});
   var od={name:'Tổng quan',rows:ov,head:false,money:[1]};
-  return [od,md,yd,gd,fd,ld];
+  var months=Object.keys(by).sort(),cm2={out:{},in:{}};
+  S.tx.forEach(function(t){var o=cm2[t.type]=cm2[t.type]||{};var r=o[t.cat]=o[t.cat]||{};r[t.date.slice(0,7)]=(r[t.date.slice(0,7)]||0)+t.amt});
+  var mh=['Mục'].concat(months.map(function(m){return 'Tháng '+m.slice(5)+'/'+m.slice(0,4)}),['Tổng','Trung bình / tháng']),cr=[mh];
+  [['out','CHI TIÊU THEO MỤC','Tổng chi'],['in','THU NHẬP THEO MỤC','Tổng thu']].forEach(function(g){
+    cr.push([g[1]]);var tot=months.map(function(){return 0});
+    var names=Object.keys(cm2[g[0]]).sort(function(a,b){var sa=0,sb=0;months.forEach(function(m){sa+=cm2[g[0]][a][m]||0;sb+=cm2[g[0]][b][m]||0});return sb-sa});
+    names.forEach(function(n){var row=[n],sum=0;months.forEach(function(m,i){var v=cm2[g[0]][n][m]||0;row.push(v?f(v):'');sum+=v;tot[i]+=v});row.push(f(sum),months.length?f(sum/months.length):0);cr.push(row)});
+    var ts=0;tot.forEach(function(v){ts+=v});cr.push([g[2]].concat(tot.map(f),[f(ts),months.length?f(ts/months.length):0]));cr.push([]);
+  });
+  var cd={name:'Theo mục',rows:cr,head:true,money:months.map(function(_,i){return i+1}).concat([months.length+1,months.length+2])};
+  return [od,md,yd,cd,gd,fd,ld];
 }
 function gText(){
   if(!gOn())return '';
