@@ -285,7 +285,7 @@ ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;f
 'use strict';
 /* ---------- tiện ích ---------- */
 var KEY='so-chi-tieu-v1';
-var VER='13.11.2026-v';
+var VER='13.11.2026-w';
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var pad=function(n){return String(n).padStart(2,'0')};
@@ -1069,11 +1069,12 @@ function authOpen(closable){
   paint();
 }
 /* ---------- Google Sheets (chỉ ghi, để xem tổng quan) ---------- */
-var SK='so-chi-tieu-sheet',GS_TPL="// Sổ Chi Tiêu - nhận dữ liệu từ app và ghi vào Google Sheet này\nvar KEY = '__KEY__';\n\nfunction doGet() {\n  return out_({ ok: true, msg: 'Sổ Chi Tiêu đang chạy' });\n}\n\nfunction doPost(e) {\n  var lock = LockService.getScriptLock();\n  try {\n    var b = JSON.parse(e.postData.contents);\n    if (b.key !== KEY) return out_({ ok: false, error: 'KEY' });\n    lock.waitLock(20000);\n    var ss = SpreadsheetApp.getActiveSpreadsheet();\n    var names = [];\n    b.sheets.forEach(function (s, i) {\n      names.push(s.name);\n      var sh = ss.getSheetByName(s.name) || ss.insertSheet(s.name, i);\n      sh.clear();\n      var rows = s.rows, w = 1;\n      rows.forEach(function (r) { if (r.length > w) w = r.length; });\n      rows = rows.map(function (r, ri) {\n        var x = r.slice();\n        while (x.length < w) x.push('');\n        (s.dates || []).forEach(function (c) {\n          if (ri >= (s.head ? 1 : 0) && /^\\d{4}-\\d{2}-\\d{2}$/.test(x[c])) {\n            var p = x[c].split('-');\n            x[c] = new Date(+p[0], +p[1] - 1, +p[2]);\n          }\n        });\n        return x;\n      });\n      sh.getRange(1, 1, rows.length, w).setValues(rows);\n      (s.dates || []).forEach(function (c) {\n        sh.getRange(1, c + 1, rows.length, 1).setNumberFormat('dd/mm/yyyy').setHorizontalAlignment('left');\n      });\n      (s.money || []).forEach(function (c) {\n        sh.getRange(1, c + 1, rows.length, 1).setNumberFormat('#,##0');\n      });\n      if (s.head) {\n        sh.getRange(1, 1, 1, w).setFontWeight('bold').setBackground('#0e4139').setFontColor('#ffffff');\n        sh.setFrozenRows(1);\n      } else {\n        sh.getRange(1, 1, rows.length, 1).setFontWeight('bold');\n      }\n      sh.autoResizeColumns(1, w);\n    });\n    ss.getSheets().forEach(function (sh) {\n      if (names.indexOf(sh.getName()) < 0 && sh.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(sh);\n    });\n    return out_({ ok: true, t: new Date().getTime() });\n  } catch (err) {\n    return out_({ ok: false, error: String(err) });\n  } finally {\n    try { lock.releaseLock(); } catch (x) {}\n  }\n}\n\nfunction out_(o) {\n  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);\n}\n";
+var SK='so-chi-tieu-sheet',GS_TPL="// Sổ Chi Tiêu - nhận dữ liệu từ app và ghi vào Google Sheet này\nvar KEY = '__KEY__';\n\nvar C = {\n  dark: '#0e4139', band: '#f3f8f6', sec: '#d6eae4', sub: '#e6f0ec', line: '#d3e2dd',\n  text: '#16322d', mute: '#6b8580', green: '#1a7f5a', red: '#c0392b', orange: '#b86e00', white: '#ffffff'\n};\nvar MONEY = '#,##0\" đ\";[Red]-#,##0\" đ\";\"–\"';\n\nfunction doGet() {\n  return out_({ ok: true, msg: 'Sổ Chi Tiêu đang chạy' });\n}\n\nfunction doPost(e) {\n  var lock = LockService.getScriptLock();\n  try {\n    var b = JSON.parse(e.postData.contents);\n    if (b.key !== KEY) return out_({ ok: false, error: 'KEY' });\n    lock.waitLock(20000);\n    var ss = SpreadsheetApp.getActiveSpreadsheet();\n    var names = [];\n    b.sheets.forEach(function (s, i) {\n      names.push(s.name);\n      var sh = ss.getSheetByName(s.name) || ss.insertSheet(s.name, i);\n      draw_(sh, s);\n    });\n    ss.getSheets().forEach(function (sh) {\n      if (names.indexOf(sh.getName()) < 0 && sh.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(sh);\n    });\n    return out_({ ok: true, t: new Date().getTime() });\n  } catch (err) {\n    return out_({ ok: false, error: String(err) });\n  } finally {\n    try { lock.releaseLock(); } catch (x) {}\n  }\n}\n\nfunction has_(a, v) { return (a || []).indexOf(v) >= 0; }\n\nfunction draw_(sh, s) {\n  sh.clear();\n  sh.clearConditionalFormatRules();\n  sh.getBandings().forEach(function (bd) { bd.remove(); });\n  sh.setHiddenGridlines(true);\n  if (s.tab) sh.setTabColor(s.tab);\n\n  var rows = s.rows, w = 1;\n  rows.forEach(function (r) { if (r.length > w) w = r.length; });\n  var R = rows.length;\n  var vals = rows.map(function (r, ri) {\n    var x = r.slice();\n    while (x.length < w) x.push('');\n    (s.dates || []).forEach(function (c) {\n      if (ri >= (s.head ? 1 : 0) && /^\\d{4}-\\d{2}-\\d{2}$/.test(x[c])) {\n        var p = x[c].split('-');\n        x[c] = new Date(+p[0], +p[1] - 1, +p[2]);\n      }\n    });\n    return x;\n  });\n  var all = sh.getRange(1, 1, R, w);\n  all.setValues(vals);\n\n  var bg = [], fc = [], fw = [], fz = [], ha = [];\n  for (var ri = 0; ri < R; ri++) {\n    var kind = 'body';\n    if (s.head && ri === 0) kind = 'head';\n    else if (has_(s.title, ri)) kind = 'title';\n    else if (has_(s.sec, ri)) kind = 'sec';\n    else if (has_(s.sub, ri)) kind = 'sub';\n    else if (has_(s.hl, ri)) kind = 'hl';\n    else if (has_(s.tot, ri)) kind = 'tot';\n    else if (has_(s.mute, ri)) kind = 'mute';\n    else if (!rows[ri].length || rows[ri].every(function (v) { return v === ''; })) kind = 'blank';\n    var band = (kind === 'body' && ((ri + (s.head ? 0 : 1)) % 2 === 0)) ? C.band : C.white;\n    var rb = [], rf = [], rw = [], rz = [], rh = [];\n    for (var c = 0; c < w; c++) {\n      var v = vals[ri][c], col = C.text, wt = 'normal', sz = 10, back = band, al = null;\n      if (kind === 'head') { back = C.dark; col = C.white; wt = 'bold'; al = 'center'; }\n      else if (kind === 'title') { back = C.white; col = C.dark; wt = 'bold'; sz = 16; }\n      else if (kind === 'sec') { back = C.sec; col = C.dark; wt = 'bold'; sz = 11; }\n      else if (kind === 'sub') { back = C.sub; col = C.dark; wt = 'bold'; }\n      else if (kind === 'hl') { back = C.dark; col = C.white; wt = 'bold'; sz = 13; }\n      else if (kind === 'tot') { back = C.sub; wt = 'bold'; }\n      else if (kind === 'mute') { back = C.white; col = C.mute; }\n      else if (kind === 'blank') { back = C.white; }\n      if (kind === 'body' || kind === 'tot') {\n        var num = (typeof v === 'number');\n        if (has_(s.pos, c) && num && v !== 0) col = C.green;\n        if (has_(s.neg, c) && num && v !== 0) col = C.red;\n        if (has_(s.sign, c) && num) col = v > 0 ? C.green : (v < 0 ? C.red : C.text);\n      }\n      if (typeof v === 'string') {\n        if (/^Vượt/.test(v)) { col = C.red; wt = 'bold'; }\n        else if (/^Gần/.test(v)) { col = C.orange; wt = 'bold'; }\n        else if (/^Ổn/.test(v)) { col = C.green; wt = 'bold'; }\n        else if (/^Chi$/.test(v) && kind === 'body') { col = C.red; }\n        else if (/^Thu$/.test(v) && kind === 'body') { col = C.green; }\n      }\n      rb.push(back); rf.push(col); rw.push(wt); rz.push(sz); rh.push(al);\n    }\n    bg.push(rb); fc.push(rf); fw.push(rw); fz.push(rz); ha.push(rh);\n  }\n  all.setBackgrounds(bg).setFontColors(fc).setFontWeights(fw).setFontSizes(fz).setVerticalAlignment('middle');\n\n  (s.money || []).forEach(function (c) {\n    sh.getRange(1, c + 1, R, 1).setNumberFormat(MONEY).setHorizontalAlignment('right');\n  });\n  (s.dates || []).forEach(function (c) {\n    sh.getRange(1, c + 1, R, 1).setNumberFormat('dd/mm/yyyy').setHorizontalAlignment('center');\n  });\n  (s.center || []).forEach(function (c) {\n    sh.getRange(1, c + 1, R, 1).setHorizontalAlignment('center');\n  });\n  (s.wrap || []).forEach(function (c) {\n    sh.getRange(1, c + 1, R, 1).setWrap(true);\n  });\n  if (s.head) sh.getRange(1, 1, 1, w).setHorizontalAlignment('center').setWrap(true);\n\n  // viền mảnh dưới mỗi dòng dữ liệu\n  all.setBorder(false, false, true, false, false, true, C.line, SpreadsheetApp.BorderStyle.SOLID);\n  (s.tot || []).forEach(function (ri) {\n    if (ri < R) sh.getRange(ri + 1, 1, 1, w).setBorder(true, false, true, false, false, false, C.dark, SpreadsheetApp.BorderStyle.SOLID);\n  });\n\n  // chiều cao dòng\n  if (R > 0) sh.setRowHeights(1, R, 26);\n  if (s.head) sh.setRowHeight(1, 34);\n  (s.title || []).forEach(function (ri) { if (ri < R) sh.setRowHeight(ri + 1, 40); });\n  (s.hl || []).forEach(function (ri) { if (ri < R) sh.setRowHeight(ri + 1, 38); });\n  (s.sec || []).forEach(function (ri) { if (ri < R) sh.setRowHeight(ri + 1, 30); });\n\n  // độ rộng cột\n  for (var c2 = 1; c2 <= w; c2++) {\n    var fixed = s.widths && s.widths[c2 - 1];\n    if (fixed) { sh.setColumnWidth(c2, fixed); continue; }\n    if (!s.skipFit) sh.autoResizeColumn(c2);\n    var cw = sh.getColumnWidth(c2) + 18;\n    sh.setColumnWidth(c2, Math.max(90, Math.min(cw, 320)));\n  }\n\n  // cố định\n  sh.setFrozenRows(s.head ? 1 : 0);\n  sh.setFrozenColumns(s.freezeCols || 0);\n\n  // bộ lọc cho bảng dài\n  var f = sh.getFilter();\n  if (f) f.remove();\n  if (s.filter && R > 1) sh.getRange(1, 1, R, w).createFilter();\n\n  // xoá hàng/cột thừa\n  var maxR = sh.getMaxRows(), maxC = sh.getMaxColumns();\n  if (maxR > R + 5) sh.deleteRows(R + 6, maxR - R - 5);\n  if (maxC > w + 1) sh.deleteColumns(w + 2, maxC - w - 1);\n}\n\nfunction out_(o) {\n  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);\n}\n";
 var G={};try{G=JSON.parse(localStorage.getItem(SK)||'{}')||{}}catch(e){G={}}
 var gst={state:'',busy:false,dirty:false,err:''},gT=0;
 function gSave(){try{localStorage.setItem(SK,JSON.stringify(G))}catch(e){}}
 function gOn(){return !!(G.url&&G.key)}
+function bar(p){var n=Math.max(0,Math.min(10,Math.round(Math.min(p,100)/10)));return new Array(n+1).join('█')+new Array(11-n).join('░')+' '+p+'%'}
 function sheetData(){
   var f=function(n){return Math.round(+n||0)},T=todayS(),cm=mkey(T);
   var tx=S.tx.slice().sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:0});
@@ -1083,7 +1084,7 @@ function sheetData(){
   asc.forEach(function(t){run+=t.type==='in'?t.amt:-t.amt;bal[t.id]=run});
   var rows=[['Ngày','Thứ','Tháng','Loại','Mục','Thu','Chi','Số dư sau khoản này','Ghi chú']];
   tx.forEach(function(t){rows.push([t.date,wd(t.date),ml(t.date),t.type==='in'?'Thu':'Chi',t.cat,t.type==='in'?f(t.amt):'',t.type==='out'?f(t.amt):'',f(bal[t.id]),t.note||''])});
-  var gd={name:'Giao dịch',rows:rows,head:true,dates:[0],money:[5,6,7]};
+  var gd={name:'Giao dịch',rows:rows,head:true,dates:[0],money:[5,6,7],pos:[5],neg:[6],sign:[7],center:[1,2,3],wrap:[8],widths:{8:260,2:120,4:170},filter:true,tab:'#1a7f5a'};
   var by={},yr={};
   S.tx.forEach(function(t){
     var m=t.date.slice(0,7),y=t.date.slice(0,4);
@@ -1094,30 +1095,50 @@ function sheetData(){
   var cnt={};S.tx.forEach(function(t){var m=t.date.slice(0,7);cnt[m]=(cnt[m]||0)+1});
   var mr=[['Tháng','Thu nhập','Chi tiêu','Tiền dư',lim.food,lim.personal,lim.incident,'Số khoản','Tiền dư / Thu']];
   Object.keys(by).sort().reverse().forEach(function(m){var o=by[m];mr.push(['Tháng '+m.slice(5)+'/'+m.slice(0,4),f(o.i),f(o.o),f(o.i-o.o),f(o.l.food),f(o.l.personal),f(o.l.incident),cnt[m]||0,o.i>0?Math.round((o.i-o.o)/o.i*100)+'%':''])});
-  var md={name:'Tổng kết tháng',rows:mr,head:true,money:[1,2,3,4,5,6]};
+  var md={name:'Tổng kết tháng',rows:mr,head:true,money:[1,2,3,4,5,6],pos:[1],neg:[2],sign:[3],center:[7,8],tab:'#0e4139'};
   var yr2=[['Năm','Thu nhập','Chi tiêu','Tiền dư','Chi trung bình / tháng','Tiền dư / Thu']];
   Object.keys(yr).sort().reverse().forEach(function(y){var q=yr[y];var nm=Object.keys(by).filter(function(m){return m.slice(0,4)===y}).length||1;yr2.push([y,f(q.i),f(q.o),f(q.i-q.o),f(q.o/nm),q.i>0?Math.round((q.i-q.o)/q.i*100)+'%':''])});
-  var yd={name:'Tổng kết năm',rows:yr2,head:true,money:[1,2,3,4]};
+  var yd={name:'Tổng kết năm',rows:yr2,head:true,money:[1,2,3,4],pos:[1],neg:[2],sign:[3],center:[0,5],tab:'#0e4139'};
   var fu=[['Ngày','Thứ','Loại','Mục','Thu','Chi','Số dư dự kiến sau khoản này','Còn lại (ngày)','Ghi chú']],frun=balance(),t0=new Date(T.slice(0,4),+T.slice(5,7)-1,+T.slice(8,10));
   S.future.slice().sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0}).forEach(function(t){frun+=t.type==='in'?t.amt:-t.amt;var p=t.date.split('-'),dd=Math.round((new Date(+p[0],+p[1]-1,+p[2])-t0)/864e5);fu.push([t.date,wd(t.date),t.type==='in'?'Thu':'Chi',t.cat,t.type==='in'?f(t.amt):'',t.type==='out'?f(t.amt):'',f(frun),dd,t.note||''])});
-  var fd={name:'Tương lai',rows:fu,head:true,dates:[0],money:[4,5,6]};
+  var fd={name:'Tương lai',rows:fu,head:true,dates:[0],money:[4,5,6],pos:[4],neg:[5],sign:[6],center:[1,2,7],wrap:[8],widths:{8:260,3:170},tab:'#b86e00'};
   var gl=[['Mục tiêu','Cần đạt','Đã có','Còn thiếu','Tiến độ','Hạn','Ghi chú']];
-  S.goals.forEach(function(g){gl.push([g.name,f(g.target),f(g.saved),f(Math.max(0,g.target-g.saved)),(g.target>0?Math.min(100,Math.round(g.saved/g.target*100)):0)+'%',g.deadline||'',g.note||''])});
-  var ld={name:'Mục tiêu',rows:gl,head:true,money:[1,2,3]};
+  S.goals.forEach(function(g){gl.push([g.name,f(g.target),f(g.saved),f(Math.max(0,g.target-g.saved)),bar(g.target>0?Math.min(100,Math.round(g.saved/g.target*100)):0),g.deadline||'',g.note||''])});
+  var ld={name:'Mục tiêu',rows:gl,head:true,money:[1,2,3],center:[4,5],wrap:[6],widths:{4:200,6:240},tab:'#7a5ea8'};
   var s1=sums(S.tx),mo=sums(S.tx.filter(function(t){return t.date.slice(0,7)===cm})),fs=sums(S.future);
-  var ov=[['Cập nhật lúc',new Date().toLocaleString('vi-VN')],['Số dư ban đầu',f(S.opening)],['Tổng thu từ trước đến nay',f(s1.i)],['Tổng chi từ trước đến nay',f(s1.o)],['SỐ DƯ HIỆN TẠI',f(balance())],['Số dư dự kiến sau các khoản tương lai',f(balance()+fs.r)],['',''],['Tháng '+cm.slice(5)+'/'+cm.slice(0,4),''],['Thu nhập',f(mo.i)],['Chi tiêu',f(mo.o)],['Tiền dư',f(mo.r)],['',''],['Giới hạn chi tiêu tháng này','Đã chi / Giới hạn']];
-  ['food','personal','incident'].forEach(function(k){var sp=0;S.tx.forEach(function(t){if(t.type==='out'&&t.cat===lim[k]&&t.date.slice(0,7)===cm)sp+=t.amt});var L=S.limits[k]||0;ov.push([lim[k],f(sp)+' / '+(L?f(L).toLocaleString('vi-VN'):'chưa đặt')+(L?' ('+Math.round(sp/L*100)+'%)':'')])});
-  var od={name:'Tổng quan',rows:ov,head:false,money:[1]};
+  var ml2='Tháng '+cm.slice(5)+'/'+cm.slice(0,4),ov=[],OS=[],OT=[0],OH=[],OM=[1],OSub=[];
+  ov.push(['SỔ CHI TIÊU · TỔNG QUAN','','','','']);
+  ov.push(['Cập nhật lúc '+new Date().toLocaleString('vi-VN'),'','','','']);
+  ov.push(['','','','','']);
+  OS.push(ov.length);ov.push(['SỐ DƯ','','','','']);
+  OH.push(ov.length);ov.push(['Số dư hiện tại',f(balance()),'','','']);
+  ov.push(['Số dư dự kiến sau các khoản tương lai',f(balance()+fs.r),'','','']);
+  ov.push(['Số dư ban đầu',f(S.opening),'','','']);
+  ov.push(['','','','','']);
+  OS.push(ov.length);ov.push([ml2.toUpperCase(),'','','','']);
+  ov.push(['Thu nhập',f(mo.i),'','','']);
+  ov.push(['Chi tiêu',f(mo.o),'','','']);
+  ov.push(['Tiền dư',f(mo.r),'','','']);
+  ov.push(['','','','','']);
+  OS.push(ov.length);ov.push(['GIỚI HẠN CHI TIÊU THÁNG NÀY','','','','']);
+  OSub.push(ov.length);ov.push(['Mục','Đã chi','Giới hạn','Mức đã dùng','Tình trạng']);
+  ['food','personal','incident'].forEach(function(k){var sp=0;S.tx.forEach(function(t){if(t.type==='out'&&t.cat===lim[k]&&t.date.slice(0,7)===cm)sp+=t.amt});var L=S.limits[k]||0,pc=L?Math.round(sp/L*100):0;ov.push([lim[k],f(sp),L?f(L):'Chưa đặt',L?bar(pc):'',!L?'':pc>=100?'Vượt giới hạn':pc>=80?'Gần vượt':'Ổn'])});
+  ov.push(['','','','','']);
+  OS.push(ov.length);ov.push(['TỔNG TỪ TRƯỚC ĐẾN NAY','','','','']);
+  ov.push(['Tổng thu',f(s1.i),'','','']);
+  ov.push(['Tổng chi',f(s1.o),'','','']);
+  ov.push(['Số khoản đã ghi',S.tx.length+' khoản','','','']);
+  var od={name:'Tổng quan',rows:ov,head:false,money:[1,2],title:OT,sec:OS,hl:OH,sub:OSub,mute:[1],widths:{0:290,1:150,2:150,3:190,4:140},skipFit:true,tab:'#0e4139'};
   var months=Object.keys(by).sort(),cm2={out:{},in:{}};
   S.tx.forEach(function(t){var o=cm2[t.type]=cm2[t.type]||{};var r=o[t.cat]=o[t.cat]||{};r[t.date.slice(0,7)]=(r[t.date.slice(0,7)]||0)+t.amt});
-  var mh=['Mục'].concat(months.map(function(m){return 'Tháng '+m.slice(5)+'/'+m.slice(0,4)}),['Tổng','Trung bình / tháng']),cr=[mh];
+  var mh=['Mục'].concat(months.map(function(m){return 'Tháng '+m.slice(5)+'/'+m.slice(0,4)}),['Tổng','Trung bình / tháng']),cr=[mh],cSec=[],cTot=[];
   [['out','CHI TIÊU THEO MỤC','Tổng chi'],['in','THU NHẬP THEO MỤC','Tổng thu']].forEach(function(g){
-    cr.push([g[1]]);var tot=months.map(function(){return 0});
+    cSec.push(cr.length);cr.push([g[1]]);var tot=months.map(function(){return 0});
     var names=Object.keys(cm2[g[0]]).sort(function(a,b){var sa=0,sb=0;months.forEach(function(m){sa+=cm2[g[0]][a][m]||0;sb+=cm2[g[0]][b][m]||0});return sb-sa});
     names.forEach(function(n){var row=[n],sum=0;months.forEach(function(m,i){var v=cm2[g[0]][n][m]||0;row.push(v?f(v):'');sum+=v;tot[i]+=v});row.push(f(sum),months.length?f(sum/months.length):0);cr.push(row)});
-    var ts=0;tot.forEach(function(v){ts+=v});cr.push([g[2]].concat(tot.map(f),[f(ts),months.length?f(ts/months.length):0]));cr.push([]);
+    var ts=0;tot.forEach(function(v){ts+=v});cTot.push(cr.length);cr.push([g[2]].concat(tot.map(f),[f(ts),months.length?f(ts/months.length):0]));cr.push([]);
   });
-  var cd={name:'Theo mục',rows:cr,head:true,money:months.map(function(_,i){return i+1}).concat([months.length+1,months.length+2])};
+  var cd={name:'Theo mục',rows:cr,head:true,sec:cSec,tot:cTot,freezeCols:1,widths:{0:200},tab:'#1a7f5a',money:months.map(function(_,i){return i+1}).concat([months.length+1,months.length+2])};
   return [od,md,yd,cd,gd,fd,ld];
 }
 function gText(){
