@@ -285,7 +285,7 @@ ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;f
 'use strict';
 /* ---------- tiện ích ---------- */
 var KEY='so-chi-tieu-v1';
-var VER='17.11.2026-y4';
+var VER='17.11.2026-y5';
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var pad=function(n){return String(n).padStart(2,'0')};
@@ -795,10 +795,7 @@ function act(a,b){
     case 'rep-test':repAct('report');break;
     case 'sheet-guide':openGuide();break;
     case 'sheet-save':sheetSave();break;
-    case 'sheet-copy':sheetCopy();break;
-    case 'sheet-view':sheetView();break;
     case 'sheet-dl':sheetDownload();break;
-    case 'code-sel':codeSel();break;
     case 'sheet-off':sheetOff();break;
     case 'cloud-open':authOpen(true);break;
     case 'cloud-sync':syncNow();break;
@@ -1164,7 +1161,7 @@ function repBtn(){return G.rep?'Tắt báo cáo hằng tháng':'Bật báo cáo 
 function repMsg(t){var el=$('#gs-rst');if(el)el.textContent=t}
 function repErr(e){
   var m=String(e&&e.message||e);
-  if(/forEach|reading '|is not a function/.test(m))return 'Mã Apps Script chưa phải bản mới. Hãy sao chép mã mới, dán vào Apps Script rồi triển khai phiên bản mới.';
+  if(/forEach|reading '|is not a function/.test(m))return 'Mã Apps Script chưa phải bản mới. Hãy tải file .gs mới, dán nội dung vào Apps Script rồi triển khai phiên bản mới.';
   if(/permission|authoriz|quyền|MailApp|ScriptApp|Unexpected token|JSON/i.test(m))return 'Chưa cấp quyền gửi email. Mở Apps Script, chọn hàm setupMonthly, bấm Chạy và cấp quyền, rồi thử lại.';
   return gErr(e);
 }
@@ -1209,9 +1206,9 @@ function scheduleSheet(){if(!gOn())return;clearTimeout(gT);gT=setTimeout(gPush,2
 function gGuide(){
   return '<div class="guide"><b>Cách kết nối (làm một lần, khoảng 5 phút)</b><ol>'+
    '<li>Ở ô <b>Mật khẩu riêng</b> bên dưới, tự đặt một mật khẩu (ít nhất 4 ký tự, dễ nhớ, không chia sẻ).</li>'+
-   '<li>Bấm <b>Sao chép mã Apps Script</b>.</li>'+
+   '<li>Bấm <b>Tải file .gs chứa mã</b>, rồi mở file vừa tải và chép toàn bộ nội dung.</li>'+
    '<li>Mở <b>sheets.google.com</b>, tạo một bảng tính <b>trống</b>.</li>'+
-   '<li>Vào menu <b>Tiện ích mở rộng → Apps Script</b>. Xoá hết mã có sẵn, dán mã vừa sao chép rồi bấm biểu tượng <b>Lưu</b>.</li>'+
+   '<li>Vào menu <b>Tiện ích mở rộng → Apps Script</b>. Xoá hết mã có sẵn, dán mã vừa chép rồi bấm biểu tượng <b>Lưu</b>.</li>'+
    '<li>Bấm <b>Triển khai → Tùy chọn triển khai mới</b>. Ở biểu tượng bánh răng chọn loại <b>Ứng dụng web</b>.</li>'+
    '<li>Đặt <b>Người có quyền truy cập: Bất kỳ ai</b>, giữ "Thực thi dưới tên: Tôi", rồi bấm <b>Triển khai</b>.</li>'+
    '<li>Google hỏi cấp quyền: chọn tài khoản của bạn. Nếu hiện cảnh báo "chưa xác minh", bấm <b>Nâng cao → Đi tới … (không an toàn) → Cho phép</b>. Đây là mã của chính bạn nên an toàn.</li>'+
@@ -1229,8 +1226,7 @@ function sheetCard(){
   '<div class="field"><label for="gs-key">Mật khẩu riêng (tự đặt, phải giống trong Apps Script)</label><input id="gs-key" class="inp" type="text" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" value="'+esc(G.key||'')+'"></div>'+
   '<div class="field"><label for="gs-url">Đường link ứng dụng web (Apps Script)</label><input id="gs-url" class="inp" type="url" inputmode="url" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="'+esc(G.url||'')+'"></div>'+
   '<div class="hint" id="gs-st">'+esc(gText())+'</div>'+
-  '<div class="btnrow"><button class="btn pri" data-act="sheet-save">'+(on?'Lưu và gửi lại':'Kết nối')+'</button><button class="btn" data-act="sheet-copy">Sao chép mã Apps Script</button></div>'+
-  '<div class="btnrow"><button class="btn" data-act="sheet-dl">Tải file .gs chứa mã</button><button class="btn" data-act="sheet-view">Xem mã</button></div>'+
+  '<div class="btnrow"><button class="btn pri" data-act="sheet-save">'+(on?'Lưu và gửi lại':'Kết nối')+'</button><button class="btn" data-act="sheet-dl">Tải file .gs chứa mã</button></div>'+
   (on?'<button class="txtbtn" data-act="sheet-guide">Xem lại hướng dẫn</button><button class="txtbtn" data-act="sheet-off">Ngắt kết nối</button>':'')+(on?repBlock():'')+'</section>';
 }
 function openGuide(){
@@ -1242,18 +1238,6 @@ function sheetCode(){
   var ek=k.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   return GS_TPL.split('__KEY__').join(ek);
 }
-function sheetCopy(){
-  var txt=sheetCode();if(txt===null)return;
-  var done=function(){toast('Đã sao chép '+txt.length+' ký tự. Dán vào Apps Script.')};
-  var fb=function(){
-    var ta=document.createElement('textarea');ta.value=txt;ta.readOnly=false;ta.style.cssText='position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;font-size:16px';
-    document.body.appendChild(ta);ta.focus();ta.select();try{ta.setSelectionRange(0,txt.length)}catch(e){}
-    var ok=false;try{ok=document.execCommand('copy')}catch(e){}
-    ta.remove();
-    if(ok)done();else{toast('Không sao chép được, đang tải file .gs thay thế');sheetDownload()}
-  };
-  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(done).catch(fb);else fb();
-}
 function sheetDownload(){
   var txt=sheetCode();if(txt===null)return;
   try{
@@ -1261,16 +1245,8 @@ function sheetDownload(){
     a.href=u;a.download='so-chi-tieu.gs';a.style.display='none';document.body.appendChild(a);a.click();
     setTimeout(function(){a.remove();URL.revokeObjectURL(u)},4000);
     toast('Đã tải file so-chi-tieu.gs. Mở file, chép toàn bộ nội dung dán vào Apps Script.');
-  }catch(e){toast('Không tải được file, hãy dùng nút Xem mã');sheetView()}
+  }catch(e){toast('Không tải được file')}
 }
-function sheetView(){
-  var txt=sheetCode();if(txt===null)return;
-  openLayer('<div class="hd"><button class="txtbtn" data-act="sh-close">Đóng</button><h3>Mã Apps Script</h3><button class="btn pri sm" data-act="code-sel">Chọn hết</button></div>'+
-  '<div class="hint" style="margin:8px 0">Bấm “Chọn hết”, rồi chọn “Sao chép” (Copy) trên bàn phím/menu. Mã gồm '+txt.length+' ký tự, dòng cuối là <b>}</b>.</div>'+
-  '<textarea id="code-ta" class="inp" readonly spellcheck="false" style="width:100%;height:55vh;font:12px/1.4 ui-monospace,Menlo,monospace;white-space:pre;overflow:auto"></textarea>','tall');
-  $('#code-ta').value=txt;
-}
-function codeSel(){var ta=$('#code-ta');if(!ta)return;ta.focus();ta.select();try{ta.setSelectionRange(0,ta.value.length)}catch(e){}}
 function sheetSave(){
   var u=($('#gs-url').value||'').trim(),k=($('#gs-key').value||'').trim();
   if(!/^https:\/\/script\.google\.com\/macros\/s\/[^\s]+\/exec$/.test(u)){toast('Đường link chưa đúng. Phải bắt đầu bằng https://script.google.com/macros/s/ và kết thúc bằng /exec');return}
