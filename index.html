@@ -285,7 +285,7 @@ ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;f
 'use strict';
 /* ---------- tiện ích ---------- */
 var KEY='so-chi-tieu-v1';
-var VER='17.11.2026-y3';
+var VER='17.11.2026-y4';
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var pad=function(n){return String(n).padStart(2,'0')};
@@ -791,8 +791,7 @@ function act(a,b){
     case 'about':openAbout();break;
     case 'lim-fold':ui.lim=!ui.lim;render(true);break;
     case 'gs-fold':ui.gs=!ui.gs;render(true);if(ui.gs&&gOn())gAction('status').then(function(j){G.rep=!!j.on;gSave();var st=$('#gs-rstate');if(st)st.textContent=repState()}).catch(function(){});break;
-    case 'rep-on':repAct('enable');break;
-    case 'rep-off':repAct('disable');break;
+    case 'rep-toggle':repAct(G.rep?'disable':'enable');break;
     case 'rep-test':repAct('report');break;
     case 'sheet-guide':openGuide();break;
     case 'sheet-save':sheetSave();break;
@@ -1161,6 +1160,7 @@ function gAction(a,extra){
   return fetch(G.url,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:body}).then(function(r){return r.json()}).then(function(j){if(!j||!j.ok)throw new Error(j&&j.error||'Lỗi không rõ');return j});
 }
 function repState(){return G.rep?'Đang bật: tự gửi báo cáo tháng vừa qua vào ngày 1 hằng tháng (khoảng 7 giờ sáng).':'Chưa bật báo cáo hằng tháng.'}
+function repBtn(){return G.rep?'Tắt báo cáo hằng tháng':'Bật báo cáo hằng tháng'}
 function repMsg(t){var el=$('#gs-rst');if(el)el.textContent=t}
 function repErr(e){
   var m=String(e&&e.message||e);
@@ -1174,7 +1174,7 @@ function repAct(a){
   repMsg('Đang xử lý…');
   gAction(a,a==='report'?{month:'current'}:{}).then(function(j){
     if(a==='enable')G.rep=true;if(a==='disable')G.rep=false;gSave();
-    var st=$('#gs-rstate');if(st)st.textContent=repState();
+    var st=$('#gs-rstate');if(st)st.textContent=repState();var tg=$('#rep-tg');if(tg){tg.textContent=repBtn();tg.classList.toggle('pri',!G.rep)}
     repMsg(a==='report'?'Đã gửi báo cáo tháng '+j.month.slice(5)+'/'+j.month.slice(0,4)+' tới '+j.to+'. Hãy kiểm tra hộp thư (cả thư rác).':a==='enable'?'Đã bật báo cáo hằng tháng.':'Đã tắt báo cáo hằng tháng.');
   }).catch(function(e){repMsg(repErr(e))});
 }
@@ -1182,8 +1182,7 @@ function repBlock(){
   return '<div class="guide"><b>Báo cáo hằng tháng qua email</b><div class="hint">Sau khi hết tháng, vào ngày 1, hệ thống tự gửi email giới thiệu báo cáo tháng kèm file PDF.</div>'+
   '<div class="field"><label for="gs-mail">Email nhận báo cáo</label><input id="gs-mail" class="inp" type="email" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Để trống: gửi về Gmail của bạn" value="'+esc(G.mail||'')+'"></div>'+
   '<div class="hint" id="gs-rstate">'+esc(repState())+'</div><div class="hint" id="gs-rst"></div>'+
-  '<div class="btnrow"><button class="btn pri" data-act="rep-on">Bật báo cáo hằng tháng</button><button class="btn" data-act="rep-test">Gửi thử báo cáo tháng này</button></div>'+
-  '<button class="txtbtn" data-act="rep-off">Tắt báo cáo hằng tháng</button>'+
+  '<div class="btnrow"><button class="btn'+(G.rep?'':' pri')+'" id="rep-tg" data-act="rep-toggle">'+repBtn()+'</button><button class="btn" data-act="rep-test">Gửi thử báo cáo tháng này</button></div>'+
   '<div class="hint">Lần đầu nếu báo lỗi quyền: mở Apps Script, chọn hàm <b>setupMonthly</b>, bấm Chạy và cấp quyền (Google sẽ hỏi quyền gửi email).</div></div>';
 }
 function gUpd(){var el=$('#gs-st');if(el)el.textContent=gText()}
