@@ -255,17 +255,13 @@ ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;f
 .guide{border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0}.guide ol{margin:8px 0;padding-left:20px;line-height:1.5}.guide li{margin:6px 0}
 .fold .fs.sm{font-size:13px;font-weight:500;color:var(--mid);line-height:1.4}
 
-.fx-rip{position:fixed;z-index:99999;pointer-events:none;border-radius:50%;width:12px;height:12px;margin:-6px 0 0 -6px;background:currentColor;color:var(--fg);opacity:.22;transform:scale(.4)}
 @media (prefers-reduced-motion:no-preference){
 button,[data-act],.tab,.row,.dchip{transition:transform .12s ease,opacity .12s ease,background-color .15s ease}
 button:active,[data-act]:active,.tab:active,.row:active,.dchip:active{transform:scale(.95);opacity:.8}
 .row:active{transform:scale(.985)}
 .tab:active svg{transform:scale(1.18)}
 .tab svg{transition:transform .15s ease}
-.fx-rip{animation:fxrip .5s ease-out forwards}
-@keyframes fxrip{to{transform:scale(9);opacity:0}}
 }
-@media (prefers-reduced-motion:reduce){.fx-rip{display:none}}
 </style>
 </head><body>
 
@@ -297,7 +293,7 @@ button:active,[data-act]:active,.tab:active,.row:active,.dchip:active{transform:
 'use strict';
 /* ---------- tiện ích ---------- */
 var KEY='so-chi-tieu-v1';
-var VER='23.11.2026-a';
+var VER='23.11.2026-c';
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var pad=function(n){return String(n).padStart(2,'0')};
@@ -570,6 +566,14 @@ function render(keepScroll){
   document.querySelectorAll('.tab').forEach(function(b){b.classList.toggle('on',b.dataset.v===v)});
   var st=$('#strip');if(st){var tg=st.querySelector('.dchip.on:not(.all)')||st.querySelector('.today');if(tg)st.scrollLeft=tg.offsetLeft-st.clientWidth/2+tg.offsetWidth/2}
   mm.scrollTop=keepScroll?y:0;
+  var pv=render.last;render.last=v;
+  if(pv&&pv!==v&&mm.animate&&!(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches)){
+    var ease='cubic-bezier(.22,.61,.36,1)';
+    mm.animate([{opacity:0},{opacity:1}],{duration:220,easing:'ease-out'});
+    Array.prototype.slice.call(mm.children,0,8).forEach(function(c,n){
+      c.animate([{opacity:0,transform:'translateY(8px) scale(.985)'},{opacity:1,transform:'none'}],{duration:320,delay:n*30,easing:ease,fill:'backwards'});
+    });
+  }
 }
 
 /* ---------- thông báo, hộp thoại ---------- */
@@ -880,9 +884,6 @@ function act(a,b){
   document.addEventListener('pointerdown',function(e){
     var t=e.target.closest&&e.target.closest(SEL);if(!t||t.disabled)return;
     try{if(navigator.vibrate)navigator.vibrate(8)}catch(x){}
-    if(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches)return;
-    var r=document.createElement('span');r.className='fx-rip';r.style.left=e.clientX+'px';r.style.top=e.clientY+'px';
-    document.body.appendChild(r);setTimeout(function(){r.remove()},520);
   },{passive:true});
 })();
 document.addEventListener('click',function(e){
