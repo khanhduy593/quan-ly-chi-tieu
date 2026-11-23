@@ -254,6 +254,18 @@ ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;f
 .fold .fs{font-size:15px;font-weight:600}.fold .chev{font-size:18px;color:var(--mid);padding:6px}
 .guide{border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;margin:8px 0}.guide ol{margin:8px 0;padding-left:20px;line-height:1.5}.guide li{margin:6px 0}
 .fold .fs.sm{font-size:13px;font-weight:500;color:var(--mid);line-height:1.4}
+
+.fx-rip{position:fixed;z-index:99999;pointer-events:none;border-radius:50%;width:12px;height:12px;margin:-6px 0 0 -6px;background:currentColor;color:var(--fg);opacity:.22;transform:scale(.4)}
+@media (prefers-reduced-motion:no-preference){
+button,[data-act],.tab,.row,.dchip{transition:transform .12s ease,opacity .12s ease,background-color .15s ease}
+button:active,[data-act]:active,.tab:active,.row:active,.dchip:active{transform:scale(.95);opacity:.8}
+.row:active{transform:scale(.985)}
+.tab:active svg{transform:scale(1.18)}
+.tab svg{transition:transform .15s ease}
+.fx-rip{animation:fxrip .5s ease-out forwards}
+@keyframes fxrip{to{transform:scale(9);opacity:0}}
+}
+@media (prefers-reduced-motion:reduce){.fx-rip{display:none}}
 </style>
 </head><body>
 
@@ -285,7 +297,7 @@ ol.steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;f
 'use strict';
 /* ---------- tiện ích ---------- */
 var KEY='so-chi-tieu-v1';
-var VER='17.11.2026-y5';
+var VER='23.11.2026-a';
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var pad=function(n){return String(n).padStart(2,'0')};
@@ -863,6 +875,16 @@ function act(a,b){
         var l=S.limits,ln=S.lnames;S=DEF();S.limits=l;S.lnames=ln;S.cats.out=EXP.map(function(x){return LNAMES.food===x?ln.food:LNAMES.personal===x?ln.personal:LNAMES.incident===x?ln.incident:x});save();render(true);toast('Đã xoá toàn bộ dữ liệu')});break;
   }
 }
+(function(){
+  var SEL='button,[data-act],.tab,.row,.dchip,.btn';
+  document.addEventListener('pointerdown',function(e){
+    var t=e.target.closest&&e.target.closest(SEL);if(!t||t.disabled)return;
+    try{if(navigator.vibrate)navigator.vibrate(8)}catch(x){}
+    if(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+    var r=document.createElement('span');r.className='fx-rip';r.style.left=e.clientX+'px';r.style.top=e.clientY+'px';
+    document.body.appendChild(r);setTimeout(function(){r.remove()},520);
+  },{passive:true});
+})();
 document.addEventListener('click',function(e){
   var b=e.target.closest('[data-act]');
   if(b){act(b.dataset.act,b);return}
