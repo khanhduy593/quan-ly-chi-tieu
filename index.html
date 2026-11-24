@@ -293,7 +293,7 @@ button:active,[data-act]:active,.tab:active,.row:active,.dchip:active{transform:
 'use strict';
 /* ---------- tiện ích ---------- */
 var KEY='so-chi-tieu-v1';
-var VER='24.11.2026-f';
+var VER='24.11.2026-g';
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var pad=function(n){return String(n).padStart(2,'0')};
@@ -712,7 +712,7 @@ function openTx(kind,id,type,lock){
   sh=it?{lock:true,lockType:true,kind:kind,id:it.id,type:it.type,cat:it.cat,draft:{amt:grp(Math.round(it.amt)),date:it.date,note:it.note}}:{lock:!!lock,lockType:!!type,kind:kind,id:null,type:type||'out',cat:type==='in'?S.cats.in[0]:S.lnames.food,draft:{amt:'',date:(ui.view==='month'&&ui.day)||todayS(),note:''}};
   sh.editCats=false;sh.adding=false;sh.more=false;
   paintTx();
-  if(!it){setTimeout(function(){var a=$('#f-amt');if(a&&!$('#layer').hidden)try{a.focus({preventScroll:true})}catch(e){a.focus()}},360)}
+  if(!it){var a=$('#f-amt');if(a)try{a.focus({preventScroll:true})}catch(e){a.focus()}}
 }
 function saveTx(){
   var amt=parseAmt($('#f-amt').value);
