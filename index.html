@@ -43,6 +43,9 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 .shell{height:100%;max-width:560px;margin:0 auto;min-width:0;display:flex;flex-direction:column}
 .num{font-variant-numeric:tabular-nums}
 
+.tb{display:flex;align-items:center;gap:8px}
+.bell{position:relative}
+.bdg{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--fg);color:var(--bg);border:2px solid var(--bg);font:700 11px/16px var(--font);font-style:normal;text-align:center}
 .top{flex:none;background:var(--bg);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0 10px}
 .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mid);font-weight:600}
 h1{margin:0;font-size:24px;line-height:1.15;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
@@ -293,7 +296,7 @@ button:active,[data-act]:active,.tab:active,.row:active,.dchip:active{transform:
 'use strict';
 /* ---------- tiện ích ---------- */
 var KEY='so-chi-tieu-v1';
-var VER='24.11.2026-j';
+var VER='24.11.2026-k';
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var pad=function(n){return String(n).padStart(2,'0')};
@@ -318,6 +321,7 @@ var shiftMonth=function(m,dl){var a=m.split('-').map(Number),y=a[0],mo=a[1]+dl;w
 var ICON={
   chevL:'<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>',
   chevR:'<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>',
+  bell:'<svg viewBox="0 0 24 24"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15z"/><path d="M10 21h4"/></svg>',
   gear:'<svg viewBox="0 0 24 24"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.5"/><circle cx="8" cy="17" r="2.5"/></svg>',
   warn:'<svg viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>'
 };
@@ -428,6 +432,10 @@ function dueSoon(){
   S.goals.forEach(function(g){if(!g.deadline||g.saved>=g.target)return;var n=daysTo(g.deadline);if(n>=0&&n<=5)out.push({n:n,t:'Mục tiêu '+g.name,s:'Còn thiếu '+money(g.target-g.saved)+' · hạn '+dShort(g.deadline)})});
   return out.sort(function(a,b){return a.n-b.n});
 }
+function openBell(){
+  var h=dueHtml()||'<div class="empty"><div><b>Chưa có thông báo</b><div class="hint">Khoản tương lai và mục tiêu sắp đến hạn (trong 5 ngày) sẽ hiện ở đây.</div></div></div>';
+  openLayer('<div class="hd"><button class="txtbtn" data-act="sh-close">Đóng</button><h3>Thông báo</h3><span style="min-width:48px"></span></div>'+h,'tall');
+}
 function dueHtml(){
   return dueSoon().map(function(x){
     return '<div class="alert'+(x.n===0?' over':'')+'">'+ICON.warn+'<div>'+(x.n===0?'Đến hạn hôm nay: ':'Còn '+x.n+' ngày: ')+esc(x.t)+'<small>'+esc(x.s)+'</small></div></div>';
@@ -457,7 +465,6 @@ function vMonth(){
   var m=ui.month,list=inMonth(m),s=sums(list),ls=limitStatus(m),h='';
   h+='<div class="monthnav"><button class="ic" data-act="m-prev" aria-label="Tháng trước">'+ICON.chevL+'</button><button class="lbl" data-act="m-now" aria-label="Về tháng hiện tại">'+mLabel(m)+'</button><button class="ic" data-act="m-next" aria-label="Tháng sau">'+ICON.chevR+'</button></div>';
   h+=alertsHtml(ls);
-  h+=dueHtml();
   h+='<div class="hero"><div><div class="k">Tiền dư trong tháng</div><div class="big num">'+money(s.r)+'</div></div>'+
      '<div class="two"><div><b class="num">+'+money(s.i)+'</b><span>Thu nhập</span></div><div><b class="num">−'+money(s.o)+'</b><span>Chi tiêu</span></div></div>'+
      '<div class="foot">Số dư hiện tại: <b class="num">'+money(balance())+'</b></div></div>';
@@ -577,7 +584,8 @@ function render(keepScroll){
   $('#main').innerHTML=fn();
   $('#title').textContent=TITLES[v];
   $('#eyebrow').textContent=dLabel(todayS());
-  $('#topbtn').innerHTML=v==='settings'?'<button class="txtbtn" data-act="nav" data-v="month">Xong</button>':'<button class="ic" data-act="nav" data-v="settings" aria-label="Cài đặt">'+ICON.gear+'</button>';
+  var nb=dueSoon().length;
+  $('#topbtn').innerHTML='<div class="tb"><button class="ic bell" data-act="bell" aria-label="Thông báo'+(nb?', '+nb+' việc sắp đến hạn':'')+'">'+ICON.bell+(nb?'<i class="bdg">'+nb+'</i>':'')+'</button>'+(v==='settings'?'<button class="txtbtn" data-act="nav" data-v="month">Xong</button>':'<button class="ic" data-act="nav" data-v="settings" aria-label="Cài đặt">'+ICON.gear+'</button>')+'</div>';
   document.querySelectorAll('.tab').forEach(function(b){b.classList.toggle('on',b.dataset.v===v)});
   var st=$('#strip');if(st){var tg=st.querySelector('.dchip.on:not(.all)')||st.querySelector('.today');if(tg)st.scrollLeft=tg.offsetLeft-st.clientWidth/2+tg.offsetWidth/2}
   mm.scrollTop=keepScroll?y:0;
@@ -842,6 +850,7 @@ function act(a,b){
     case 'gs-fold':ui.gs=!ui.gs;render(true);if(ui.gs&&gOn())gAction('status').then(function(j){G.rep=!!j.on;gSave();var st=$('#gs-rstate');if(st)st.textContent=repState();pushRefresh()}).catch(function(){});break;
     case 'rep-toggle':repAct(G.rep?'disable':'enable');break;
     case 'rep-test':repAct('report');break;
+    case 'bell':openBell();break;
     case 'push-toggle':if(G.push)pushDisable();else pushEnable();break;
     case 'push-test':pushTest();break;
     case 'sheet-guide':openGuide();break;
