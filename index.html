@@ -193,7 +193,7 @@ tr.jump{cursor:pointer}
 .toast b{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.8;margin-bottom:2px}
 
 .layer{position:fixed;inset:0;z-index:50;background:color-mix(in srgb,var(--fg) 45%,transparent);display:flex;align-items:flex-end;justify-content:center}
-.sheet{background:var(--bg);width:100%;max-width:560px;max-height:92%;overflow-y:auto;border-radius:22px 22px 0 0;padding:0 max(16px,env(safe-area-inset-left,0px)) calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px;border:1.5px solid var(--fg);border-bottom:0}
+.sheet{background:var(--bg);width:100%;max-width:560px;max-height:92%;overflow-y:auto;border-radius:22px 22px 0 0;padding:0 max(16px,env(safe-area-inset-left,0px)) calc(20px + env(safe-area-inset-bottom,0px) + var(--kb,0px));display:flex;flex-direction:column;gap:14px;border:1.5px solid var(--fg);border-bottom:0}
 .sheet>*{flex-shrink:0}
 .main>*,main>*{flex-shrink:0}
 .sheet .hd{display:flex;justify-content:space-between;align-items:center;gap:10px;position:sticky;top:0;z-index:2;background:var(--bg);padding:12px 0 10px;border-bottom:1px solid var(--line)}
@@ -293,7 +293,7 @@ button:active,[data-act]:active,.tab:active,.row:active,.dchip:active{transform:
 'use strict';
 /* ---------- tiện ích ---------- */
 var KEY='so-chi-tieu-v1';
-var VER='23.11.2026-c';
+var VER='24.11.2026-c';
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var pad=function(n){return String(n).padStart(2,'0')};
@@ -369,7 +369,7 @@ function limitStatus(m){
   return LIMITS.map(function(L){
     var spent=list.filter(function(t){return t.type==='out'&&t.cat===L.cat}).reduce(function(a,t){return a+t.amt},0);
     var lim=+S.limits[L.k]||0,r=lim>0?spent/lim:0;
-    return {k:L.k,cat:L.cat,label:L.label,spent:spent,lim:lim,r:r,st:lim<=0?'off':(r>=1?'over':(r>=0.8?'near':'ok'))};
+    return {k:L.k,cat:L.cat,label:L.label,spent:spent,lim:lim,r:r,full:lim>0&&spent===lim,st:lim<=0?'off':(spent>lim?'over':(r>=0.8?'near':'ok'))};
   });
 }
 var RANK={off:0,ok:0,near:1,over:2};
@@ -424,6 +424,7 @@ function yearChart(y){
 function alertsHtml(ls){
   return ls.filter(function(x){return x.st==='over'||x.st==='near'}).map(function(x){
     if(x.st==='over')return '<div class="alert over">'+ICON.warn+'<div>Đã vượt giới hạn '+esc(x.label)+'<small>Đã chi '+money(x.spent)+' / '+money(x.lim)+', vượt '+money(x.spent-x.lim)+'</small></div></div>';
+    if(x.full)return '<div class="alert">'+ICON.warn+'<div>Đã chạm giới hạn '+esc(x.label)+'<small>Đã chi '+money(x.spent)+' / '+money(x.lim)+', chi thêm sẽ vượt</small></div></div>';
     return '<div class="alert">'+ICON.warn+'<div>Sắp vượt giới hạn '+esc(x.label)+'<small>Đã dùng '+Math.round(x.r*100)+'%, còn '+money(x.lim-x.spent)+'</small></div></div>';
   }).join('');
 }
@@ -457,7 +458,7 @@ function vMonth(){
   h+=ls.map(function(x){
     if(x.st==='off')return '<div class="limit"><div class="row1"><b>'+esc(x.label)+'</b><span class="muted small">Chưa đặt giới hạn</span></div></div>';
     var pc=Math.min(100,x.r*100);
-    var badge=x.st==='over'?'<span class="pill inv">Vượt</span>':(x.st==='near'?'<span class="pill">Sắp vượt</span>':'');
+    var badge=x.st==='over'?'<span class="pill inv">Vượt</span>':(x.st==='near'?'<span class="pill">'+(x.full?'Chạm mức':'Sắp vượt')+'</span>':'');
     return '<div class="limit"><div class="row1"><b>'+esc(x.label)+' '+badge+'</b><span class="num small">'+compact(x.spent)+' / '+compact(x.lim)+'</span></div><div class="bar '+x.st+'"><i style="width:'+pc+'%"></i></div></div>';
   }).join('');
   h+='</div></section>';
@@ -599,8 +600,25 @@ function toast(msg,strong){
   clearTimeout(toastT);toastT=setTimeout(function(){t.hidden=true},strong?7000:3200);
   if(strong){try{navigator.vibrate&&navigator.vibrate([120,60,120])}catch(e){}}
 }
-function openLayer(html,cls){var l=$('#layer');l.innerHTML='<div class="sheet'+(cls?' '+cls:'')+'" role="dialog" aria-modal="true">'+html+'</div>';l.hidden=false}
-function closeLayer(){$('#layer').hidden=true;$('#layer').innerHTML='';$('#layer').style.zIndex=''}
+function openLayer(html,cls){var l=$('#layer');l.innerHTML='<div class="sheet'+(cls?' '+cls:'')+'" role="dialog" aria-modal="true">'+html+'</div>';l.hidden=false;
+  if(l.animate&&!reduceMotion()){
+    var sh0=l.firstElementChild;if(sh0)sh0.animate([{transform:'translateY(100%)'},{transform:'translateY(0)'}],{duration:320,easing:'cubic-bezier(.22,.9,.3,1)'});
+  }}
+function reduceMotion(){return !!(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches)}
+function closeLayer(){
+  var l=$('#layer');
+  if(!l.hidden&&l.firstElementChild&&l.animate&&!reduceMotion()){
+    var g=l.cloneNode(true);g.removeAttribute('id');g.style.pointerEvents='none';
+    Array.prototype.forEach.call(g.querySelectorAll('[id]'),function(n){n.removeAttribute('id')});
+    document.body.appendChild(g);
+    var done=function(){g.remove()};
+    g.style.background='transparent';
+    var s2=g.firstElementChild;
+    if(s2)s2.animate([{transform:'translateY(0)'},{transform:'translateY(100%)'}],{duration:260,easing:'cubic-bezier(.4,0,.8,.4)',fill:'forwards'}).onfinish=done;else done();
+    setTimeout(done,600);
+  }
+  l.hidden=true;l.innerHTML='';l.style.zIndex='';
+}
 function ask(msg,ok){
   return new Promise(function(res){
     var d=$('#dlg');
@@ -716,6 +734,7 @@ function limitAlerts(before,m){
   after.forEach(function(a,i){if(RANK[a.st]>RANK[before[i].st]&&(!worst||RANK[a.st]>RANK[worst.st]))worst=a});
   if(!worst){toast('Đã lưu');return}
   if(worst.st==='over')toast('Đã vượt giới hạn '+esc(worst.label)+': '+money(worst.spent)+' / '+money(worst.lim),true);
+  else if(worst.full)toast('Đã chạm giới hạn '+esc(worst.label)+': '+money(worst.spent)+' / '+money(worst.lim),true);
   else toast('Sắp vượt giới hạn '+esc(worst.label)+': đã dùng '+Math.round(worst.r*100)+'%, còn '+money(worst.lim-worst.spent),true);
 }
 
@@ -879,6 +898,18 @@ function act(a,b){
         var l=S.limits,ln=S.lnames;S=DEF();S.limits=l;S.lnames=ln;S.cats.out=EXP.map(function(x){return LNAMES.food===x?ln.food:LNAMES.personal===x?ln.personal:LNAMES.incident===x?ln.incident:x});save();render(true);toast('Đã xoá toàn bộ dữ liệu')});break;
   }
 }
+(function(){
+  var vv=window.visualViewport;if(!vv)return;
+  function fix(){
+    var l=document.getElementById('layer');if(!l)return;
+    var off=Math.max(0,vv.offsetTop),kb=Math.max(0,window.innerHeight-vv.height-off);
+    l.style.transform=off?'translateY('+off+'px)':'';
+    l.style.setProperty('--kb',kb>80?kb+'px':'0px');
+  }
+  vv.addEventListener('resize',fix);vv.addEventListener('scroll',fix);
+  document.addEventListener('focusin',function(){setTimeout(function(){window.scrollTo(0,0);fix()},50);setTimeout(fix,300)});
+  document.addEventListener('focusout',function(){setTimeout(fix,100)});
+})();
 (function(){
   var SEL='button,[data-act],.tab,.row,.dchip,.btn';
   document.addEventListener('pointerdown',function(e){
