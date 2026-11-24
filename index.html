@@ -28,7 +28,8 @@
 :root[data-theme="dark"]{--bg:var(--tone-a);--fg:var(--tone-b);color-scheme:dark}
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-html{-webkit-text-size-adjust:100%;height:100%}
+html{-webkit-text-size-adjust:100%;height:100%;overflow:hidden}
+html,body{position:fixed;inset:0;width:100%;overflow:hidden}
 body{background:var(--bg);color:var(--fg);font:500 15px/1.45 var(--font);
   height:100%;padding-block:0;overscroll-behavior:none;
   padding-left:max(16px,env(safe-area-inset-left,0px));
@@ -293,7 +294,7 @@ button:active,[data-act]:active,.tab:active,.row:active,.dchip:active{transform:
 'use strict';
 /* ---------- tiện ích ---------- */
 var KEY='so-chi-tieu-v1';
-var VER='24.11.2026-d';
+var VER='24.11.2026-e';
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var pad=function(n){return String(n).padStart(2,'0')};
@@ -898,16 +899,6 @@ function act(a,b){
         var l=S.limits,ln=S.lnames;S=DEF();S.limits=l;S.lnames=ln;S.cats.out=EXP.map(function(x){return LNAMES.food===x?ln.food:LNAMES.personal===x?ln.personal:LNAMES.incident===x?ln.incident:x});save();render(true);toast('Đã xoá toàn bộ dữ liệu')});break;
   }
 }
-(function(){
-  var vv=window.visualViewport;if(!vv)return;var raf=0;
-  function fix(){
-    raf=0;var l=document.getElementById('layer');if(!l||l.hidden)return;
-    var a=document.activeElement,pin=a&&a.id==='f-amt',off=Math.max(0,vv.offsetTop);
-    l.style.transform=(pin&&off)?'translate3d(0,'+off+'px,0)':'';
-  }
-  function q(){if(!raf)raf=requestAnimationFrame(fix)}
-  vv.addEventListener('resize',q);vv.addEventListener('scroll',q);
-})();
 (function(){
   var SEL='button,[data-act],.tab,.row,.dchip,.btn';
   document.addEventListener('pointerdown',function(e){
