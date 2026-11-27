@@ -78,6 +78,12 @@ main{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-ove
 .notice{width:100%;text-align:left;position:relative;font-family:inherit;color:var(--fg);background:transparent}
 .notice.over{color:var(--bg);background:var(--fg)}
 .notice.read{opacity:.55;font-weight:500;border-color:var(--line)}
+.tag{flex:none;margin-top:1px;font-size:11px;font-weight:700;letter-spacing:.06em;line-height:18px;padding:0 8px;border-radius:99px}
+.tag.in{background:#d6eddd;color:#1c6a39}
+.tag.out{background:#f8d9d5;color:#a1342b}
+.pins{display:flex;flex-direction:column;gap:10px;padding-bottom:10px;margin-bottom:2px;border-bottom:1.5px dashed var(--line)}
+.bdg.wr{padding:0;display:flex;align-items:center;justify-content:center;min-width:20px}
+.bdg.wr svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
 .udot{position:absolute;top:10px;right:12px;width:9px;height:9px;border-radius:50%;background:currentColor}
 .alert svg{width:20px;height:20px;flex:none;margin-top:1px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .alert small{display:block;font-weight:500;opacity:.85;font-size:13px}
@@ -300,7 +306,7 @@ button:active,[data-act]:active,.tab:active,.row:active,.dchip:active{transform:
 'use strict';
 /* ---------- tiện ích ---------- */
 var KEY='so-chi-tieu-v1';
-var VER='25.11.2026-b';
+var VER='27.11.2026-a';
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var pad=function(n){return String(n).padStart(2,'0')};
@@ -455,12 +461,14 @@ function notices(){
 function unreadCount(){return notices().filter(function(x){return !x.read}).length}
 function dueHtml(){
   return notices().map(function(x){
-    var ic=x.kind==='in'?ICON.inn:x.kind==='goal'?ICON.tgt:ICON.outx;
+    var ic=x.kind==='goal'?ICON.tgt:(x.kind==='in'?'<span class="tag in">THU</span>':'<span class="tag out">CHI</span>');
     return '<button class="alert notice'+(x.read?' read':(x.n===0?' over':''))+'" data-act="notice-read" data-k="'+esc(x.key)+'">'+ic+'<div>'+(x.n===0?'Đến hạn hôm nay: ':'Còn 5 ngày: ')+esc(x.t)+'<small>'+esc(x.s)+'</small></div>'+(x.read?'':'<i class="udot"></i>')+'</button>';
   }).join('');
 }
 function bellList(){
-  return dueHtml()||'<div class="empty"><div><b>Chưa có thông báo</b><div class="hint">Khoản tương lai và mục tiêu sẽ báo ở đây vào 7 giờ sáng, trước hạn 5 ngày và đúng ngày đến hạn.</div></div></div>';
+  var pins=alertsHtml(pinAlerts()),due=dueHtml();
+  if(pins||due)return (pins?'<div class="pins">'+pins+'</div>':'')+due;
+  return '<div class="empty"><div><b>Chưa có thông báo</b><div class="hint">Khoản tương lai và mục tiêu sẽ báo ở đây vào 7 giờ sáng, trước hạn 5 ngày và đúng ngày đến hạn.</div></div></div>';
 }
 function checkBell(){
   if(!('caches' in window))return;
@@ -481,6 +489,7 @@ function noticeRead(k){
   readSave();var l=$('#bell-list');if(l)l.innerHTML=bellList();render(true);
 }
 /* ---------- các màn hình ---------- */
+function pinAlerts(){return limitStatus(todayS().slice(0,7)).filter(function(x){return x.st==='over'||x.st==='near'})}
 function alertsHtml(ls){
   return ls.filter(function(x){return x.st==='over'||x.st==='near'}).map(function(x){
     if(x.st==='over')return '<div class="alert over">'+ICON.warn+'<div>Đã vượt giới hạn '+esc(x.label)+'<small>Đã chi '+money(x.spent)+' / '+money(x.lim)+', vượt '+money(x.spent-x.lim)+'</small></div></div>';
@@ -503,7 +512,6 @@ function dayStrip(m,list){
 function vMonth(){
   var m=ui.month,list=inMonth(m),s=sums(list),ls=limitStatus(m),h='';
   h+='<div class="monthnav"><button class="ic" data-act="m-prev" aria-label="Tháng trước">'+ICON.chevL+'</button><button class="lbl" data-act="m-now" aria-label="Về tháng hiện tại">'+mLabel(m)+'</button><button class="ic" data-act="m-next" aria-label="Tháng sau">'+ICON.chevR+'</button></div>';
-  h+=alertsHtml(ls);
   h+='<div class="hero"><div><div class="k">Tiền dư trong tháng</div><div class="big num">'+money(s.r)+'</div></div>'+
      '<div class="two"><div><b class="num">+'+money(s.i)+'</b><span>Thu nhập</span></div><div><b class="num">−'+money(s.o)+'</b><span>Chi tiêu</span></div></div>'+
      '<div class="foot">Số dư hiện tại: <b class="num">'+money(balance())+'</b></div></div>';
@@ -623,8 +631,8 @@ function render(keepScroll){
   $('#main').innerHTML=fn();
   $('#title').textContent=TITLES[v];
   $('#eyebrow').textContent=dLabel(todayS());
-  var nb=unreadCount();
-  $('#topbtn').innerHTML='<div class="tb"><button class="ic bell" data-act="bell" aria-label="Thông báo'+(nb?', '+nb+' thông báo chưa đọc':'')+'">'+ICON.bell+(nb?'<i class="bdg">'+nb+'</i>':'')+'</button>'+(v==='settings'?'<button class="txtbtn" data-act="nav" data-v="month">Xong</button>':'<button class="ic" data-act="nav" data-v="settings" aria-label="Cài đặt">'+ICON.gear+'</button>')+'</div>';
+  var nb=unreadCount(),nw=pinAlerts().length;
+  $('#topbtn').innerHTML='<div class="tb"><button class="ic bell" data-act="bell" aria-label="Thông báo'+(nb?', '+nb+' thông báo chưa đọc':'')+(nw?', có cảnh báo giới hạn chi tiêu':'')+'">'+ICON.bell+(nb?'<i class="bdg">'+nb+'</i>':(nw?'<i class="bdg wr">'+ICON.warn+'</i>':''))+'</button>'+(v==='settings'?'<button class="txtbtn" data-act="nav" data-v="month">Xong</button>':'<button class="ic" data-act="nav" data-v="settings" aria-label="Cài đặt">'+ICON.gear+'</button>')+'</div>';
   document.querySelectorAll('.tab').forEach(function(b){b.classList.toggle('on',b.dataset.v===v)});
   var st=$('#strip');if(st){var tg=st.querySelector('.dchip.on:not(.all)')||st.querySelector('.today');if(tg)st.scrollLeft=tg.offsetLeft-st.clientWidth/2+tg.offsetWidth/2}
   mm.scrollTop=keepScroll?y:0;
